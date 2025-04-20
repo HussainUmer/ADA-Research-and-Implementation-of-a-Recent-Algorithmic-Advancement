@@ -23,7 +23,9 @@ python full_implementation.py
 In both scripts, you can adjust the number of vertices (n_values) and edges (m_values) by changing the arrays. For example:
 
 n_values = [10, 20, 30, 40, 50]  # Number of vertices
+
 m_values = [20, 40, 60, 80, 100]  # Number of edges corresponding to n values
+
 This will allow you to test the algorithm on different graph configurations.
 
 Viewing Results
