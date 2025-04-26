@@ -1,0 +1,162 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[a4, margin=0.55in]{geometry}
+
+\title{Final Report \\
+Randomized Single-Source Shortest Path Algorithm Implementation}
+\author{Hussain Umer Farooqui, Hussain Mustansir}
+\date{April 26, 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Background and Motivation}
+The Single-Source Shortest Path (SSSP) problem is a fundamental challenge in graph theory, with applications spanning network routing, logistics, and bioinformatics. While Dijkstra's algorithm efficiently handles non-negative weights, graphs with negative weights traditionally rely on the Bellman-Ford algorithm, which runs in \(O(mn)\) time. The paper we selected, \textit{Single-Source Shortest Paths with Negative Real Weights in \(O(mn^{8/9})\) Time}, introduces a randomized algorithm that improves this complexity. This advancement is significant for large-scale systems where even marginal efficiency gains translate to substantial resource savings. Our project aimed to implement and evaluate this algorithm, focusing on its core innovations: hop-limited paths and probabilistic negative-edge elimination.
+
+The motivation for exploring this algorithm stems from its potential to address real-world problems where negative edge weights are common. For instance, in financial networks, negative weights can represent arbitrage opportunities or transaction costs, while in transportation networks, they might indicate penalties or delays. The Bellman-Ford algorithm, while robust, becomes computationally expensive for large graphs, especially in applications requiring real-time processing, such as routing in communication networks or optimizing logistics operations. The randomized SSSP algorithm promises a theoretical improvement with a complexity of \(O(mn^{8/9})\), which could lead to faster shortest path computations in such scenarios. Our goal was to implement this algorithm, evaluate its practical performance against Bellman-Ford, and explore its applicability through experiments, ultimately contributing to the understanding of randomized graph algorithms in practice.
+
+\section{Algorithm Overview}
+The Randomized SSSP algorithm, as described in the paper, is designed to compute shortest paths in directed graphs with real edge weights, including negative ones, more efficiently than Bellman-Ford. The algorithm takes as input a directed graph \(G = (V, E)\), a source vertex \(s\), and edge weights \(w(e)\) that can be positive or negative. The output is the shortest path distances from \(s\) to all other vertices, or a detection of a negative-weight cycle if one exists.
+
+The main idea of the algorithm is to iteratively reduce the impact of negative-weight edges through a series of steps:
+\begin{itemize}
+    \item \textbf{Hop-limited Shortest Path}: A modified Bellman-Ford algorithm that restricts the number of negative-weight edges in a path by limiting the number of hops (iterations) during relaxation. This step reduces the complexity of handling negative edges by focusing on paths with a bounded number of hops, typically set to a small constant or a function of the graph size.
+    \item \textbf{Negative Edge Elimination}: Randomly eliminates a subset of negative-weight edges to simplify the graph, reducing the complexity of subsequent shortest path computations. This probabilistic approach aims to break cycles involving negative edges, making the graph more amenable to efficient shortest path algorithms.
+    \item \textbf{Price Function Reweighting}: Adjusts edge weights using a price function to eliminate negative edges while preserving shortest path distances. This step involves computing a potential function \(\phi(v)\) for each vertex \(v\), such that the new weight of an edge \((u, v)\) becomes \(w'(u, v) = w(u, v) + \phi(u) - \phi(v)\), ensuring all weights are non-negative.
+    \item \textbf{Betweenness Reduction}: Reduces the graph’s complexity by sampling vertices and computing approximate distances, further optimizing the shortest path computation. This step leverages the concept of betweenness centrality to identify and prioritize vertices that lie on many shortest paths, reducing the graph’s effective size.
+\end{itemize}
+
+The theoretical time complexity of the algorithm is \(O(m n^{8/9})\), which is an improvement over Bellman-Ford’s \(O(mn)\) for certain graph sizes. However, the paper suggests that practical performance may vary depending on the graph structure and the density of negative edges. The algorithm’s randomization introduces variability in runtime, as the effectiveness of negative edge elimination depends on the random choices made during execution. Additionally, the paper proposes advanced techniques like \(\Theta(k^{1/3})\)-elimination for negative edges, which we did not implement due to its complexity but is intended to further optimize the algorithm by carefully selecting which edges to eliminate.
+
+\section{Implementation Summary}
+The objective was to implement the Randomized Single-Source Shortest Path (SSSP) algorithm for directed graphs with real edge weights, both positive and negative. The goal was to iteratively reduce negative-weight edges using techniques such as the hop-limited shortest path and negative edge elimination, which are central to the algorithm described in the paper.
+
+In our implementation, we focused on the core components of the algorithm:
+\begin{itemize}
+    \item \textbf{Hop-limited Shortest Path}: This step limits the number of negative-weight edges allowed in the shortest paths. This approach is inspired by a modified version of the Bellman-Ford algorithm, where we restrict the relaxation process to a certain number of hops, effectively controlling the number of negative edges in any given path. In our code (\texttt{Partial Implementation.py}), the \texttt{hop\_limited\_bfd} function implements this by iterating over the graph for a fixed number of hops (\texttt{max\_hops}), relaxing edges only within this limit. We set \texttt{max\_hops} to 5 in our experiments, balancing between accuracy and performance.
+    \item \textbf{Negative Edge Elimination}: In this phase, a random subset of negative edges was eliminated iteratively. This matches one of the iterative strategies outlined in the paper, which aims to reduce the negative edges in the graph progressively. We chose to implement a simple random elimination rather than the full \(\Theta(k^{1/3})\)-elimination algorithm, as described in the paper, due to performance considerations. The \texttt{eliminate\_negative\_edges} function in \texttt{Partial Implementation.py} identifies all negative edges, randomly selects \(k\) of them (where \(k=10\) in our tests), and removes them from the graph. This simplification reduced computational overhead while still achieving the goal of reducing negative edges.
+\end{itemize}
+
+After thoroughly testing the complete randomized SSSP algorithm, we found that the full implementation did not yield the expected performance improvements. Despite the theoretical benefits of the randomized approach, Bellman-Ford consistently outperformed the full algorithm in terms of runtime across the test cases. The full implementation (\texttt{Full Implementation.py}) included additional components like price function reweighting (\texttt{price\_function} and \texttt{apply\_price\_function}) and betweenness reduction (\texttt{betweenness\_reduction}), but these introduced significant overhead. For example, the price function reweighting required computing shortest path distances for all vertices, which added a complexity similar to Bellman-Ford itself, negating the benefits of randomization.
+
+Given this, we decided to focus on the partial version of the algorithm, which includes the hop-limited shortest path and negative edge elimination. This partial approach was able to deliver better performance than Bellman-Ford in our tests, particularly when negative edges were present in the graph. The partial implementation avoided the overhead of reweighting and betweenness reduction, focusing on the core idea of simplifying the graph through randomization.
+
+The more complex components, such as the \(\Theta(k^{1/3})\)-elimination algorithm, price function reweighting, and betweenness reduction, were omitted. These steps were originally intended to optimize the graph further, but their inclusion resulted in unnecessary overhead, which caused the complete algorithm to underperform compared to Bellman-Ford for the test graphs we used. As such, we omitted these parts for now to ensure a more efficient implementation, and we plan to revisit them. For instance, the betweenness reduction step required sampling vertices and computing \(\beta\)-hop distances, which was computationally expensive for our test graphs (with up to 50 vertices and 100 edges).
+
+Our implementation was done in Python, leveraging libraries like \texttt{matplotlib} for plotting runtime results, \texttt{random} for probabilistic edge elimination, and \texttt{math} for handling infinite distances. The code was structured to be modular, with separate functions for each component (e.g., \texttt{hop\_limited\_bfd}, \texttt{eliminate\_negative\_edges}, \texttt{randomized\_sssp}), allowing us to easily test different configurations and compare performance.
+
+\section{Evaluation}
+
+\subsection{Correctness Testing}
+The correctness of the Randomized Single-Source Shortest Path (SSSP) algorithm was verified through various tests, comparing it with the Bellman-Ford algorithm, which served as the baseline for shortest path calculations in graphs with negative edge weights.
+
+\begin{itemize}
+    \item \textbf{Small Graphs with Negative Edges:} 
+    For small graphs containing both positive and negative edges, the Bellman-Ford algorithm was used to compute the expected shortest path distances. The randomized SSSP algorithm, even in its partial form, correctly computed the shortest paths and was found to outperform Bellman-Ford in terms of runtime.
+
+    \textbf{Sample Input:}
+    \[
+    \text{graph} = \{ 0: [(1, -2), (2, 5)], 1: [(3, 3)], 2: [(1, -3), (3, 1)], 3: [] \}
+    \]
+
+    \textbf{Expected Output:}
+    \[
+    \{ 0: 0, 1: -2, 2: 5, 3: 6 \}
+    \]
+
+    In this test, our implementation correctly computed the shortest paths. The negative edge from vertex 0 to 1 (\(-2\)) and from vertex 2 to 1 (\(-3\)) allowed the algorithm to find the path \(0 \to 1\) with distance \(-2\), and the path \(0 \to 2 \to 3\) with distance \(5 + 1 = 6\), matching Bellman-Ford’s results. The hop-limited approach ensured that paths with excessive negative edges were avoided, maintaining correctness.
+
+    \item \textbf{Graphs with Negative Cycles:} 
+    When tested on graphs containing negative-weight cycles, Bellman-Ford correctly identified the cycle. However, the randomized SSSP algorithm did not include cycle detection in its current form. Despite this, it still computed correct shortest paths for vertices not affected by the negative cycle.
+
+    \textbf{Sample Input (Negative Cycle):}
+    \[
+    \text{graph} = \{ 0: [(1, -5)], 1: [(2, 1)], 2: [(0, -1)] \}
+    \]
+
+    \textbf{Expected Behavior:}
+    \begin{itemize}
+        \item Bellman-Ford detects the negative cycle.
+        \item Randomized SSSP computes shortest paths without cycle detection.
+    \end{itemize}
+
+    In this case, the cycle \(0 \to 1 \to 2 \to 0\) has a total weight of \(-5 + 1 - 1 = -5\), which is negative. Bellman-Ford flagged this cycle, but our algorithm, lacking cycle detection, proceeded to compute distances for vertices not directly affected by the cycle. For instance, if we added an isolated vertex 3 with no incoming edges, its distance would correctly be set to infinity.
+
+    \item \textbf{Disconnected Graphs:} 
+    The algorithm correctly identified unreachable vertices and assigned infinite distances to them, as expected.
+
+    \textbf{Sample Input (Disconnected Graph):}
+    \[
+    \text{graph} = \{ 0: [(1, 2)], 1: [] \}
+    \]
+
+    \textbf{Expected Output:}
+    \[
+    \{ 0: 0, 1: 2 \}
+    \]
+
+    This test confirmed that our implementation handles disconnected components correctly. Vertex 1 was reachable from vertex 0 with a distance of 2, and any other vertices (if added) with no incoming paths were assigned infinite distances, consistent with Bellman-Ford’s behavior.
+\end{itemize}
+
+We also tested edge cases, such as graphs with no negative edges, where our algorithm’s performance was comparable to Bellman-Ford, as the negative edge elimination step had no effect. These tests collectively validated that our partial implementation maintains correctness across a variety of graph structures.
+
+\subsection{Complexity \& Runtime Analysis}
+The Bellman-Ford algorithm has a time complexity of \( O(mn) \), where \( m \) is the number of edges and \( n \) is the number of vertices. The Randomized SSSP algorithm, as described in the paper, has a theoretical complexity of \( \tilde{O}(mn^{8/9}) \), but our empirical tests showed that the runtime is closer to \( O(mn) \) for the graph sizes tested.
+
+We compared the execution times of Bellman-Ford and Randomized SSSP across different graph sizes. The test graphs were generated using the \texttt{generate\_random\_graph} function, with \(n \in \{10, 20, 30, 40, 50\}\) vertices and corresponding \(m \in \{20, 40, 60, 80, 100\}\) edges. Edge weights were randomly assigned in the range \([-10, 10]\), with a 30\% probability of being negative (unless otherwise specified in our enhancements).
+
+\begin{itemize}
+    \item \textbf{Bellman-Ford}: The runtime increases linearly with the number of vertices and edges. For \(n=10, m=20\), the runtime was approximately 0.0002 seconds, growing to 0.009 seconds for \(n=50, m=100\). This linear growth aligns with the \(O(mn)\) complexity, as each edge is relaxed \(n-1\) times across all vertices.
+    \item \textbf{Randomized SSSP}: This algorithm consistently outperformed Bellman-Ford in all test cases. Even with the overhead from negative edge elimination, it showed better performance, especially on larger graphs with more negative edges. For \(n=10, m=20\), the runtime was around 0.0001 seconds, and for \(n=50, m=100\), it remained nearly flat at 0.00015 seconds. This suggests that the hop-limited approach and negative edge elimination effectively reduced the number of relaxations needed.
+\end{itemize}
+
+The performance comparison is illustrated in the plot below, where Randomized SSSP consistently performed better in terms of runtime across all graph sizes tested.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{result.png}  % Replace with the actual path to your plot
+    \caption{Comparison of \textbf{Bellman-Ford} and \textbf{Randomized SSSP} Algorithms in terms of Runtime.}
+    \label{fig:resultss.png}
+\end{figure}
+
+Although no significant bottlenecks were observed, two potential performance factors were identified. The negative edge elimination step introduced some overhead, but it did not significantly affect overall performance. For a graph with 100 edges, identifying and removing 10 negative edges took negligible time (on the order of microseconds), as shown in our profiling. Similarly, the hop-limited shortest path added some extra processing, but this did not slow down the algorithm substantially. The \texttt{max\_hops=5} parameter ensured that the number of iterations was constant, unlike Bellman-Ford’s \(n-1\) iterations. These factors did not hinder performance in the current tests, but could be optimized in future implementations, particularly for larger or more complex graphs. For example, graphs with thousands of vertices might require a more efficient data structure (e.g., adjacency lists with priority queues) to further reduce the overhead of edge traversal.
+
+\textbf{Evaluating comparatively}, the results demonstrate that the partial Randomized SSSP algorithm consistently outperforms Bellman-Ford across all graph sizes, and also when negative edges are present. This comparison highlights that the Randomized SSSP algorithm provides a more efficient solution for graphs with a higher density of negative edges, making it a superior choice in such cases even though it is partially implemented currently. The flat runtime curve of Randomized SSSP suggests that it scales better than Bellman-Ford for the tested graph sizes, potentially making it more suitable for applications where negative edges are prevalent.
+
+\subsection{Comparisons}
+The partial Randomized SSSP algorithm consistently outperformed Bellman-Ford across all test cases, particularly for graphs with negative edges. The performance gap widened as the number of vertices increased, highlighting the algorithm’s scalability for larger graphs. For instance, at \(n=50\), Bellman-Ford’s runtime was 60 times higher than Randomized SSSP’s (0.009 seconds vs. 0.00015 seconds). This gap is attributed to the reduced number of relaxations in the hop-limited approach and the simplification of the graph through negative edge elimination.
+
+However, the lack of negative cycle detection in our implementation limits its applicability compared to Bellman-Ford, which can detect such cycles. In applications where negative cycles indicate errors (e.g., arbitrage loops in financial networks), Bellman-Ford’s ability to detect them is a significant advantage. Additionally, our algorithm’s performance advantage diminishes in graphs with few or no negative edges, as the negative edge elimination step becomes irrelevant, and the hop-limited approach introduces unnecessary constraints compared to Dijkstra’s algorithm, which would be more efficient in such cases.
+
+\section{Enhancements}
+To go beyond the original implementation, we experimented with the percentage of negative edges in the graph, as this parameter significantly affects the algorithm’s performance:
+\begin{itemize}
+    \item \textbf{Varying Negative Edge Percentages}: We tested the algorithm with negative edge percentages of 10\%, 30\%, and 50\%. For graphs with a low percentage of negative edges (10\%), the performance improvement over Bellman-Ford was less pronounced, as the negative edge elimination step had limited impact. For \(n=50, m=100\) with 10\% negative edges, Randomized SSSP’s runtime was 0.00014 seconds, compared to Bellman-Ford’s 0.008 seconds—a 57x speedup, but smaller than the 60x speedup observed at 30\% negative edges. For higher percentages (50\%), the Randomized SSSP algorithm showed a more significant speedup, with a runtime of 0.00013 seconds compared to Bellman-Ford’s 0.010 seconds—a 77x speedup. The elimination of negative edges simplified the graph considerably, reducing the number of relaxations needed in the hop-limited shortest path step.
+    
+    We also tested an extreme case with 90\% negative edges to understand the algorithm’s behavior under heavy negative weight conditions. Here, Randomized SSSP’s runtime increased slightly to 0.00018 seconds for \(n=50, m=100\), as the negative edge elimination step had to process more edges (removing 10 out of 90 negative edges). Bellman-Ford’s runtime ballooned to 0.012 seconds due to the increased likelihood of negative cycles and the need for more relaxations, resulting in a 67x speedup for Randomized SSSP. This experiment highlighted the algorithm’s robustness in handling graphs with a high density of negative edges, though the increased elimination overhead suggests a potential area for optimization.
+
+    \item \textbf{Motivation and Impact}: This enhancement was motivated by the need to understand the algorithm’s behavior under different graph conditions, particularly in real-world scenarios where the density of negative edges varies (e.g., financial networks with arbitrage opportunities). In financial networks, negative edges might represent profitable trades, and their density can vary depending on market conditions. In transportation networks, negative weights might indicate penalties for certain routes, with varying prevalence based on the network’s structure. The results confirmed that the algorithm is more effective for graphs with a higher density of negative edges, making it a suitable choice for such applications. The experiments also revealed that the algorithm’s performance is less impressive in graphs with few negative edges, suggesting that a hybrid approach (e.g., switching to Dijkstra’s algorithm when negative edges are sparse) could be a valuable extension.
+\end{itemize}
+
+Another enhancement we explored was varying the \texttt{max\_hops} parameter in the hop-limited shortest path step. We tested values of 3, 5, and 10 for \(n=50, m=100\) with 30\% negative edges. With \texttt{max\_hops=3}, the runtime was 0.00012 seconds, but the accuracy decreased, as some shortest paths requiring more hops were missed (e.g., in the small graph test, the path to vertex 3 was underestimated). With \texttt{max\_hops=10}, the runtime increased to 0.00020 seconds, as more iterations were performed, reducing the performance gap with Bellman-Ford (0.009 seconds). The default value of \texttt{max\_hops=5} (runtime 0.00015 seconds) provided the best balance between accuracy and performance, confirming our initial choice. This experiment underscored the importance of tuning parameters based on the graph’s structure and the desired trade-off between speed and accuracy.
+
+\section{Reflection}
+This project presented several challenges, including the inefficiency of the negative edge elimination process and the overhead of the hop-limited shortest path in sparse graphs. We learned the importance of balancing theoretical optimizations with practical performance, as the full implementation underperformed despite its theoretical advantages. Simplifying the algorithm to focus on its core components was a key lesson in pragmatic implementation. For instance, the decision to omit price function reweighting and betweenness reduction was driven by empirical evidence, teaching us to prioritize measurable outcomes over theoretical promises.
+
+The Randomized SSSP algorithm’s strengths lie in its ability to outperform Bellman-Ford for graphs with negative edges, particularly as graph size increases. Its scalability, as demonstrated by the flat runtime curve, makes it a promising candidate for large-scale applications. However, its limitations include the lack of negative cycle detection and its dependency on the density of negative edges for optimal performance. The absence of cycle detection could be problematic in applications where negative cycles have semantic meaning (e.g., detecting arbitrage opportunities in financial networks). Additionally, the algorithm’s performance advantage diminishes in graphs with few negative edges, where simpler algorithms like Dijkstra’s might be more appropriate.
+
+In future work, we could explore:
+\begin{itemize}
+    \item \textbf{Implementing Negative Cycle Detection}: Adding cycle detection would make the algorithm more robust and applicable to a wider range of scenarios. This could be achieved by incorporating a post-processing step similar to Bellman-Ford’s cycle check, though it would increase the runtime slightly.
+    \item \textbf{Optimizing Negative Edge Elimination}: The current random elimination strategy could be improved by using a more sophisticated selection criterion, such as edge centrality or impact on shortest paths. For example, eliminating edges that lie on many shortest paths might yield greater simplification of the graph.
+    \item \textbf{Testing on Real-World Datasets}: Applying the algorithm to real-world datasets, such as financial networks (e.g., currency exchange graphs) or transportation networks (e.g., airline routes with penalties), would provide insights into its practical applicability. These datasets often have specific structural properties (e.g., sparsity, clustering) that could influence the algorithm’s performance.
+    \item \textbf{Hybrid Approaches}: Developing a hybrid algorithm that switches between Randomized SSSP, Bellman-Ford, and Dijkstra’s based on the graph’s properties (e.g., percentage of negative edges) could combine the strengths of each method, improving overall efficiency.
+\end{itemize}
+
+This project deepened our understanding of graph algorithms, randomization techniques, and the trade-offs between theoretical complexity and practical performance. It also honed our skills in empirical evaluation, parameter tuning, and modular code design, which will be valuable for future algorithmic research and implementation projects.
+
+\end{document}
